@@ -4,6 +4,9 @@ broadcast/
 .env
 .DS_Store
 
+# Gas snapshot baseline must be committed (do not ignore)
+!.gas-snapshot
+
 # Exported ABI artifacts are versioned and committed for release attachment
 !abi/
 !abi/**

@@ -36,11 +36,42 @@ Each release attaches the ABI JSON as a release asset, so downstream consumers c
 
 - `src/`: contract source.
 - `test/`: self-contained Solidity tests.
+- `test/ShortlistRegistry.invariants.t.sol`: Foundry invariant tests for the registry-wide properties documented below.
 - `docs/adr/`: Architecture Decision Records.
 - `script/`: Foundry deployment scripts.
 - `scripts/`: tooling, including `export-abi.sh` for ABI export.
 - `abi/`: generated ABI artifacts (e.g. `ShortlistRegistry.json`).
 - `foundry.toml`: pinned compiler/build settings.
+
+## Registry invariants
+
+The `ShortlistRegistry` maintains a set of registry-wide properties that must
+hold after any arbitrary sequence of calls (register, unregister, transfer,
+etc.). These are checked with Foundry invariant tests in
+`test/ShortlistRegistry.invariants.t.sol`, which drive the contract through
+randomized handler calls and assert the properties below after every run.
+
+- **Unique registrations**: each dependency identifier is registered at most
+  once. A successful registration never creates a duplicate entry, and the
+  registry never reports two distinct entries for the same identifier.
+- **Consistent ownership**: every registered entry has exactly one owner, and
+  that owner is the address recorded for the entry. Ownership is never left
+  unset for a live entry, and only the current owner can mutate or transfer an
+  entry.
+- **Monotonic counters**: any registry counter (e.g. total registrations or
+  entry ids) never decreases across calls. Counters only advance, so ids are
+  never reused and historical counts remain stable.
+- **No orphaned entries**: every entry reachable through the registry's
+  bookkeeping (owner index, id index, or enumeration) corresponds to a live
+  registration, and every live registration is reachable through that
+  bookkeeping. Removing an entry cleans up all associated indexes so no stale
+  or dangling references remain.
+
+Run the invariant suite with:
+
+```sh
+forge test --match-path test/ShortlistRegistry.invariants.t.sol
+```
 
 ## Access control model
 
