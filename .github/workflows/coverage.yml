@@ -1,0 +1,147 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  # Minimum line coverage percentage required for CI to pass.
+  # Documented in CONTRIBUTING.md. Update both places if changed.
+  MIN_COVERAGE: "80"
+
+jobs:
+  coverage:
+    name: Forge Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Show Foundry version
+        run: forge --version
+
+      - name: Run forge coverage
+        run: |
+          set -o pipefail
+          forge coverage --report summary --report lcov 2>&1 | tee coverage-summary.txt
+
+      - name: Enforce minimum coverage threshold
+        run: |
+          set -euo pipefail
+          echo "Required minimum line coverage: ${MIN_COVERAGE}%"
+
+          # Parse the "Total" row of the summary table.
+          # Example row:
+          # | Total | 123 | 100 | 81.30% | 5 | 90.00% | 10 | 95.00% | 2 |
+          total_line=$(grep -E '^\|\s*Total\s*\|' coverage-summary.txt | head -n 1 || true)
+
+          if [ -z "${total_line}" ]; then
+            echo "::error::Could not find the Total row in forge coverage output."
+            cat coverage-summary.txt
+            exit 1
+          fi
+
+          # Extract the "Lines %" column (4th column: Total, Lines, Statements, Lines %, ...).
+          # Columns: Total | Lines | Statements | Lines % | Branches | Branches % | Funcs | Funcs % | ...
+          lines_pct=$(echo "${total_line}" | awk -F'|' '{gsub(/[ %]/,"",$5); print $5}')
+
+          if [ -z "${lines_pct}" ]; then
+            echo "::error::Could not parse line coverage percentage from: ${total_line}"
+            exit 1
+          fi
+
+          echo "Measured line coverage: ${lines_pct}%"
+
+          # Compare using awk for floating point support.
+          if awk -v measured="${lines_pct}" -v min="${MIN_COVERAGE}" 'BEGIN { exit !(measured + 0 >= min + 0) }'; then
+            echo "Coverage ${lines_pct}% meets the minimum threshold of ${MIN_COVERAGE}%."
+          else
+            echo "::error::Coverage ${lines_pct}% is below the minimum threshold of ${MIN_COVERAGE}%."
+            exit 1
+          fi
+
+      - name: Upload coverage summary artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: |
+            coverage-summary.txt
+            lcov.info
+          if-no-files-found: warn
+
+      - name: Publish coverage summary to job summary
+        if: always()
+        run: |
+          {
+            echo "## Forge Coverage"
+            echo ""
+            echo "Minimum required line coverage: **${MIN_COVERAGE}%**"
+            echo ""
+            echo '```'
+            cat coverage-summary.txt || echo "No coverage output available."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment coverage on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '';
+            try {
+              summary = fs.readFileSync('coverage-summary.txt', 'utf8');
+            } catch (e) {
+              summary = 'No coverage output available.';
+            }
+            const min = process.env.MIN_COVERAGE;
+            const body = [
+              '## Forge Coverage',
+              '',
+              `Minimum required line coverage: **${min}%**`,
+              '',
+              '```',
+              summary.trim(),
+              '```',
+            ].join('\n');
+
+            const marker = '<!-- forge-coverage-report -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+
+            const fullBody = `${marker}\n${body}`;
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: fullBody,
+              });
+            }

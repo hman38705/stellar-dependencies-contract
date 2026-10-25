@@ -70,3 +70,8 @@ If a new high or medium finding appears, it must be fixed or added here with a w
 ### CI (optional)
 
 To run Slither in CI, add a workflow that installs `slither-analyzer`, compiles the contracts, and runs `slither . --config-file slither.config.json`. Fail the job on high or medium findings (for example with `--fail-high` / `--fail-medium` or by parsing the JSON output) so regressions are caught early.
+
+## Related documents
+
+- [`docs/AUDIT_CHECKLIST.md`](docs/AUDIT_CHECKLIST.md) — pre-audit readiness criteria (spec completeness, test coverage, static analysis and known limitations). Use this to determine when the contract is ready for review.
+- [`docs/INTEGRATION_DESIGN.md`](docs/INTEGRATION_DESIGN.md) — integration design covering how a shortlist flows from the frontend to the registry, trust boundaries, who pays gas, and a comparison of options.
