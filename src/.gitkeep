@@ -1,5 +1,0 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-// Placeholder file to ensure the src directory is tracked by git.
-// No Solidity source files exist yet; run `forge fmt` on any files added here.

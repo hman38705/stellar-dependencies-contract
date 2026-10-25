@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+  FOUNDRY_FUZZ_RUNS: "1000"
+  FOUNDRY_INVARIANT_RUNS: "256"
+  FOUNDRY_INVARIANT_DEPTH: "64"
 
 jobs:
   fmt:
@@ -22,6 +28,34 @@ jobs:
       - name: Run forge fmt --check
         run: forge fmt --check
 
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Show Foundry version
+        run: forge --version
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Run tests (with fuzz & invariant runs)
+        run: |
+          forge test \
+            --fuzz-runs "$FOUNDRY_FUZZ_RUNS" \
+            --invariant-runs "$FOUNDRY_INVARIANT_RUNS" \
+            --invariant-depth "$FOUNDRY_INVARIANT_DEPTH" \
+            -vvv
+
   doc:
     name: NatSpec doc build
     runs-on: ubuntu-latest
@@ -36,3 +70,52 @@ jobs:
 
       - name: Run forge doc
         run: forge doc
+
+  gas-snapshot:
+    name: Gas Snapshot Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Verify .gas-snapshot exists
+        run: |
+          if [ ! -f .gas-snapshot ]; then
+            echo "::error::.gas-snapshot is missing. Run 'forge snapshot' and commit the result."
+            exit 1
+          fi
+
+      - name: Check gas snapshot
+        run: forge snapshot --check --fuzz-runs "$FOUNDRY_FUZZ_RUNS"
+
+  slither:
+    name: Slither Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Slither
+        run: pip3 install slither-analyzer
+
+      - name: Run Slither
+        run: |
+          if [ -f slither.config.json ]; then
+            slither . --config-file slither.config.json
+          else
+            slither . --filter-paths "lib|test|script"
+          fi
