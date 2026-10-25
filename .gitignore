@@ -3,3 +3,7 @@ cache/
 broadcast/
 .env
 .DS_Store
+
+# Exported ABI artifacts are versioned and committed for release attachment
+!abi/
+!abi/**
