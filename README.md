@@ -10,6 +10,10 @@ This repository is one of three:
 - **stellar-dependencies-backend**: API and GitHub/npm scanner
 - **stellar-dependencies-frontend**: web UI
 
+## Design and threat model
+
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the contract's purpose, storage layout, trust assumptions, what it explicitly does not do (it does not manage or send funds), and known risks with mitigations.
+
 ## Build and test
 
 Requires [Foundry](https://book.getfoundry.sh/). Compiler and build settings are pinned in `foundry.toml`.
@@ -92,6 +96,23 @@ confirmed against every target chain's supported opcode set.
 If `foundry.toml` is not present in a checkout, it must be restored before building; the
 pinned values above are the ones it is expected to contain.
 
+## Formatting
+
+Code must be formatted with `forge fmt`. CI runs `forge fmt --check` and fails on any unformatted Solidity.
+
+```sh
+forge fmt
+forge fmt --check
+```
+
+## Documentation
+
+All external and public functions, events and errors must have NatSpec (`@notice`, `@param`, `@return`). CI verifies that `forge doc` builds.
+
+```sh
+forge doc
+```
+
 ## ABI export
 
 After `forge build`, run the export script to produce the contract ABI as JSON:
@@ -117,6 +138,7 @@ Each release attaches the ABI JSON as a release asset, so downstream consumers c
 - `src/`: contract source.
 - `test/`: self-contained Solidity tests.
 - `test/ShortlistRegistry.invariants.t.sol`: Foundry invariant tests for the registry-wide properties documented below.
+- `docs/`: design document and threat model.
 - `docs/adr/`: Architecture Decision Records.
 - `script/`: Foundry deployment scripts.
 - `scripts/`: tooling, including `export-abi.sh` for ABI export.
