@@ -2,6 +2,8 @@
 
 This is an MVP scaffold, not an audited funding application. It never executes scanned code or manages funds. Input validation, fixed upstream hosts, disabled redirects, body limits, content security headers and server-only token handling reduce common risks; they do not replace production review.
 
+The optional on-chain contract does not manage or send funds. For the intended behavior, storage layout, trust assumptions, threat model and known risks with mitigations, see [`docs/DESIGN.md`](docs/DESIGN.md).
+
 ## Reporting a vulnerability
 
 Please report security vulnerabilities privately through GitHub's private vulnerability reporting form:
