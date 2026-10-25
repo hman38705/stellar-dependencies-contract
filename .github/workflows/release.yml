@@ -1,0 +1,37 @@
+name: Release ABI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  export-abi:
+    name: Export and attach ABI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Export ABI
+        run: bash scripts/export-abi.sh
+
+      - name: Verify ABI artifact exists
+        run: test -f abi/ShortlistRegistry.json
+
+      - name: Upload ABI to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG_NAME" abi/ShortlistRegistry.json --clobber

@@ -32,6 +32,16 @@ CI runs `forge coverage` on every pull request and fails the build if coverage d
 
 The coverage summary is published as part of the CI run for each pull request. Open the CI workflow run for your branch and review the coverage step's output (and any uploaded coverage artifact) to see the summary. The same summary is available in the CI logs if you need to compare against your local run.
 
+## Contract interface changes
+
+If your change modifies the contract interface (functions, events, errors, or structs), regenerate the published ABI so downstream consumers stay in sync:
+
+1. Run `forge build`.
+2. Run `scripts/export-abi.sh` to export the ABI as JSON.
+3. Commit the regenerated `abi/ShortlistRegistry.json` alongside your change.
+
+The ABI file is versioned and attached to each release, so keeping it up to date in the same pull request ensures a stable interface for backend and frontend consumers.
+
 ## References for Contributors
 
 - **Pre-audit checklist** — see [`docs/AUDIT_CHECKLIST.md`](docs/AUDIT_CHECKLIST.md). This checklist defines when the contract is ready for review; work through it item by item before requesting an audit.

@@ -92,6 +92,19 @@ confirmed against every target chain's supported opcode set.
 If `foundry.toml` is not present in a checkout, it must be restored before building; the
 pinned values above are the ones it is expected to contain.
 
+## ABI export
+
+After `forge build`, run the export script to produce the contract ABI as JSON:
+
+```sh
+forge build
+./scripts/export-abi.sh
+```
+
+This writes `abi/ShortlistRegistry.json`. That file is the stable, versioned interface consumed by the backend and frontend repositories, so treat it as the canonical contract interface rather than reading artifacts directly.
+
+Each release attaches the ABI JSON as a release asset, so downstream consumers can pin to a specific released ABI.
+
 ## Documentation
 
 - [Integration design](docs/INTEGRATION_DESIGN.md): how a shortlist could flow from the
@@ -103,5 +116,7 @@ pinned values above are the ones it is expected to contain.
 
 - `src/`: contract source.
 - `test/`: self-contained Solidity tests.
+- `scripts/`: tooling, including `export-abi.sh` for ABI export.
+- `abi/`: generated ABI artifacts (e.g. `ShortlistRegistry.json`).
 - `foundry.toml`: pinned compiler/build settings.
 - `docs/`: design and process documentation.
