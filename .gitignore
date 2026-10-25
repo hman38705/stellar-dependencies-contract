@@ -10,3 +10,9 @@ broadcast/
 # Exported ABI artifacts are versioned and committed for release attachment
 !abi/
 !abi/**
+
+# Foundry dependencies (managed via git submodules)
+lib/
+
+# Keep submodule gitlinks tracked
+!lib/**/.gitkeep
